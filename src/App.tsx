@@ -68,7 +68,7 @@ const AppContent: React.FC = () => {
               ) : (
                 // остальные случаи, где нужен parallel или Carousel
                 ((farm === "Аршиновка" && (dmb === "2")) || (farm === "Наровчат" && dmb === "2")) ? (
-                  <Parallels data={data} averages={averages} dmb_type="parallel" />
+                  <Parallels data={data} averages={averages} dmb_type="parallel" reverseRightColumn={!(farm === "Аршиновка" && dmb === "2")} />
                 ) : (
                   <Carousel data={data} averages={averages} />
                 )

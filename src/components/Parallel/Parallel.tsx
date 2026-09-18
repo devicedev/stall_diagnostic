@@ -18,12 +18,14 @@ interface ParallelsProps {
     manual_mode_count: number | null;
   };
   dmb_type?: "parallel" | "herringbone";
+  reverseRightColumn?: boolean;
 }
 
 const Parallels: React.FC<ParallelsProps> = ({
   data,
   averages,
   dmb_type = "parallel",
+  reverseRightColumn = true,
 }) => {
   const half = Math.ceil(data.length / 2);
   const column1 = data.slice(0, half);
@@ -47,7 +49,7 @@ const Parallels: React.FC<ParallelsProps> = ({
             ))}
         </div>
         <div 
-        className={styles.columnReverse}
+        className={reverseRightColumn ? styles.columnReverse : styles.column}
         style={{ marginTop: dmb_type === "herringbone" ? "100px" : undefined }}
         >
             {column2.map((stall) => (
