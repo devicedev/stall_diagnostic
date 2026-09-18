@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useSearchParams } from "react-router-dom";
+import StatisticsDashboard from "../StatisticsDashboard/StatisticsDashboard";
 import styles from "./Header.module.css";
 
 const farms = ["Наровчат", "Аршиновка", "Сердобск"];
@@ -29,14 +30,6 @@ export const Header: React.FC = () => {
     Number(searchParams.get("milking")) || 1
   );
 
-  // Состояния для выгрузки статистики
-  const [startDate, setStartDate] = useState<Date>(
-    new Date(new Date().setDate(new Date().getDate() - 7))
-  );
-  const [endDate, setEndDate] = useState<Date>(
-    new Date(new Date().setDate(new Date().getDate() - 1))
-  );
-  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
@@ -67,60 +60,6 @@ export const Header: React.FC = () => {
     if (dateParam.getTime() !== selectedDate.getTime()) setSelectedDate(dateParam);
     if (milkingParam !== selectedMilking) setSelectedMilking(milkingParam);
   }, [searchParams]);
-
-  // Функция для выгрузки Excel отчета
-  const exportToExcel = async () => {
-    if (!startDate || !endDate) {
-      alert("Пожалуйста, выберите начальную и конечную дату");
-      return;
-    }
-
-    if (startDate > endDate) {
-      alert("Начальная дата не может быть позже конечной");
-      return;
-    }
-
-    setIsExporting(true);
-    
-    try {
-      const formatDate = (date: Date) => {
-        return date.toISOString().slice(0, 10);
-      };
-
-      const url = `/api/v1/stall/diagnostic/problems/excel?farm=${selectedFarm}&dmb=${selectedDMB}&start_date=${formatDate(startDate)}&end_date=${formatDate(endDate)}`;
-      
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Ошибка при выгрузке отчета');
-      }
-
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = blobUrl;
-      downloadLink.download = `problematic_stalls_${selectedFarm}_dmb${selectedDMB}_${formatDate(startDate)}_${formatDate(endDate)}.xlsx`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      window.URL.revokeObjectURL(blobUrl);
-      
-      // Закрываем модальное окно после успешной выгрузки
-      setShowModal(false);
-      
-    } catch (error) {
-      console.error('Ошибка при выгрузке:', error);
-      alert(error instanceof Error ? error.message : 'Произошла ошибка при выгрузке отчета');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
     <>
@@ -211,76 +150,12 @@ export const Header: React.FC = () => {
         </button>
       </div>
 
-      {/* Модальное окно для экспорта */}
-      {showModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <button
-              className={styles.modalCloseButton}
-              onClick={() => setShowModal(false)}
-              aria-label="Закрыть"
-            >
-              ✕
-            </button>
-            
-            <div className={styles.modalTitle}>
-              Выгрузка отчета по проблемным местам
-            </div>
-            
-            <div className={styles.modalSubtitle}>
-              за период
-            </div>
-            
-            <div className={styles.modalFields}>
-              <div className={styles.field}>
-                <label className={styles.label}>Начальная дата:</label>
-                <DatePicker
-                  selected={startDate}
-                  onChange={(date: Date | null) => {
-                    if (date) setStartDate(date);
-                  }}
-                  dateFormat="yyyy-MM-dd"
-                  className={styles.datepicker}
-                  maxDate={endDate}
-                  popperPlacement="bottom-start"
-                />
-              </div>
-
-              <div className={styles.field}>
-                <label className={styles.label}>Конечная дата:</label>
-                <DatePicker
-                  selected={endDate}
-                  onChange={(date: Date | null) => {
-                    if (date) setEndDate(date);
-                  }}
-                  dateFormat="yyyy-MM-dd"
-                  className={styles.datepicker}
-                  minDate={startDate}
-                  maxDate={new Date()}
-                  popperPlacement="bottom-start"
-                />
-              </div>
-            </div>
-
-            <div className={styles.modalInfo}>
-              <div>🏡 Ферма: <strong>{selectedFarm}</strong></div>
-              <div>⚙️ ДМБ: <strong>{selectedDMB}</strong></div>
-            </div>
-
-            <button
-              onClick={exportToExcel}
-              disabled={isExporting}
-              className={styles.modalDownloadButton}
-            >
-              {isExporting ? "Загрузка..." : "📥 Скачать отчет Excel"}
-            </button>
-            
-            <div className={styles.modalHint}>
-              * Отчет включает все проблемные места за выбранный период
-            </div>
-          </div>
-        </div>
-      )}
+      <StatisticsDashboard
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        farm={selectedFarm}
+        initialDmb={selectedDMB}
+      />
     </>
   );
 };
